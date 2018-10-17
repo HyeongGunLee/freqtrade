@@ -123,7 +123,7 @@ def _load_pair_as_ticks(pair, tickfreq):
 
 # FIX: fixturize this?
 def _make_backtest_conf(mocker, conf=None, pair='UNITTEST/BTC', record=None):
-    data = optimize.load_data(None, ticker_interval='8m', pairs=[pair])
+    data = optimize.load_data(None, ticker_interval='1m', pairs=[pair])
     data = trim_dictlist(data, -201)
     patch_exchange(mocker)
     backtesting = Backtesting(conf)
@@ -654,12 +654,16 @@ def test_backtest_alternate_buy_sell(default_conf, fee, mocker):
     backtest_conf = _make_backtest_conf(mocker, conf=default_conf, pair='UNITTEST/BTC')
     # We need to enable sell-signal - otherwise it sells on ROI!!
     default_conf['experimental'] = {"use_sell_signal": True}
+    default_conf['ticker_interval'] = '1m'
     backtesting = Backtesting(default_conf)
     backtesting.advise_buy = _trend_alternate  # Override
     backtesting.advise_sell = _trend_alternate  # Override
     results = backtesting.backtest(backtest_conf)
     backtesting._store_backtest_result("test_.json", results)
-    assert len(results) == 21
+    # 200 candles in backtest data
+    # won't buy on first (shifted by 1)
+    # 100 buys signals
+    assert len(results) == 99
     # One trade was force-closed at the end
     assert len(results.loc[results.open_at_end]) == 0
 
